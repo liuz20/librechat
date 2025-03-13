@@ -27,6 +27,23 @@ fi
 echo "Creating build directory..."
 mkdir -p build || error_exit "Failed to create build directory"
 
+# Create temporary directory and page break file
+echo "Creating temporary directory for processing..."
+TEMP_DIR=$(mktemp -d) || error_exit "Failed to create temporary directory"
+
+# Create page break file
+PAGE_BREAK_FILE="$TEMP_DIR/page-break.tex"
+echo "\\newpage" > "$PAGE_BREAK_FILE" || error_exit "Failed to create page break file"
+
+# Function to clean up temporary files on exit
+cleanup() {
+    echo "Cleaning up temporary files..."
+    rm -rf "$TEMP_DIR"
+}
+
+# Register cleanup function to run on exit
+trap cleanup EXIT
+
 # Find all markdown files in chapter directories in numeric order
 echo "Finding markdown files in chapter directories..."
 FILES=$(find chap*_* -type f -name "*.md" | sort -V)
@@ -41,9 +58,25 @@ for file in $FILES; do
     echo "  - $file"
 done
 
-# Generate PDF using pandoc
-echo "Generating PDF..."
-pandoc $FILES \
+# Prepare files list with page break file between each markdown file
+echo "Preparing files list with page breaks between files..."
+PROCESSED_FILES=""
+first_file=true
+
+for file in $FILES; do
+    # Don't add page break before the first file
+    if [ "$first_file" = true ]; then
+        PROCESSED_FILES="$file"
+        first_file=false
+    else
+        # Add page break file between markdown files
+        PROCESSED_FILES="$PROCESSED_FILES $PAGE_BREAK_FILE $file"
+    fi
+done
+
+# Generate PDF using pandoc with page breaks between files
+echo "Generating PDF with page breaks between files..."
+pandoc $PROCESSED_FILES \
     --pdf-engine=xelatex \
     -V documentclass=article \
     -V classoption=UTF8 \
