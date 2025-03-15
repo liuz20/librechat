@@ -108,6 +108,9 @@ class OpenAIClient extends BaseClient {
 
     const omniPattern = /\b(o1|o3)\b/i;
     this.isOmni = omniPattern.test(this.modelOptions.model);
+    //Debug log
+    console.log('[DEBUG] isOmni:', this.isOmni);
+    console.log('[DEBUG] model name and pattern:', this.modelOptions.model, omniPattern);
 
     const { OPENAI_FORCE_PROMPT } = process.env ?? {};
     const { reverseProxyUrl: reverseProxy } = this.options;
@@ -387,6 +390,9 @@ class OpenAIClient extends BaseClient {
     { isChatCompletion = false, promptPrefix = null },
     opts,
   ) {
+    
+    debugger;
+
     let orderedMessages = this.constructor.getMessagesForConversation({
       messages,
       parentMessageId,
@@ -405,8 +411,12 @@ class OpenAIClient extends BaseClient {
     let promptTokens;
 
     promptPrefix = (promptPrefix || this.options.promptPrefix || '').trim();
+
+    console.log('[DEBUG] promptPrefix value:', promptPrefix);
     if (typeof this.options.artifactsPrompt === 'string' && this.options.artifactsPrompt) {
-      promptPrefix = `${promptPrefix ?? ''}\n${this.options.artifactsPrompt}`.trim();
+      // ZL TODO - THIS COMBINES DEFAULT PROMPT  Not sure if needed.
+      // promptPrefix = `${promptPrefix ?? ''}\n${this.options.artifactsPrompt}`.trim();
+      // promptPrefix = `${promptPrefix}`.trim();
     }
 
     if (this.options.attachments) {
@@ -480,6 +490,7 @@ class OpenAIClient extends BaseClient {
         role: 'system',
         content: promptPrefix,
       };
+      console.log('[DEBUG] System message with promptPrefix:', instructions);
 
       if (this.contextStrategy) {
         instructions.tokenCount = this.getTokenCountForMessage(instructions);
@@ -518,7 +529,10 @@ class OpenAIClient extends BaseClient {
     if (promptTokens >= 0 && typeof opts?.getReqData === 'function') {
       opts.getReqData({ promptTokens });
     }
+    
+    console.log('[DEBUG] Final payload tokens count: ', result.tokenCountMap);
 
+    // console.log('[DEBUG] Final payload with promptPrefix:', JSON.stringify(result, null, 2));
     return result;
   }
 

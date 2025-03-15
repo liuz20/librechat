@@ -1,7 +1,10 @@
 const { removeNullishValues } = require('librechat-data-provider');
 const generateArtifactsPrompt = require('~/app/clients/prompts/artifacts');
+const { getCustomConfig } = require('~/server/services/Config');
 
-const buildOptions = (endpoint, parsedBody, endpointType) => {
+
+
+const buildOptions = async (endpoint, parsedBody, endpointType) => {
   const {
     modelLabel,
     chatGptLabel,
@@ -15,12 +18,21 @@ const buildOptions = (endpoint, parsedBody, endpointType) => {
     artifacts,
     ...modelOptions
   } = parsedBody;
+  
+  const customConfig = await getCustomConfig();
+  
+  // Use customConfig to set or override promptPrefix if available
+  // Find the custom endpoint by name
+  // ZL TODO - check for a proper implementation.
+  const customEndpoint = customConfig?.endpoints?.custom?.find((e) => e.name === endpoint);
+  const finalPromptPrefix = customEndpoint?.promptPrefix || promptPrefix;
+  
   const endpointOption = removeNullishValues({
     endpoint,
     endpointType,
     modelLabel,
     chatGptLabel,
-    promptPrefix,
+    promptPrefix: finalPromptPrefix,
     resendFiles,
     imageDetail,
     iconURL,

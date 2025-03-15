@@ -14,6 +14,16 @@ const AskController = async (req, res, next, initializeClient, addTitle) => {
     overrideParentMessageId = null,
   } = req.body;
 
+  // TODO(ZL) Debug Message - to be removed later
+  console.log('================================');
+  console.log('Received message payload:');
+  console.log('Text:', text);
+  console.log('Endpoint:', endpointOption?.endpoint);
+  console.log('Model:', endpointOption?.modelOptions?.model);
+  console.log('Conversation ID:', conversationId);
+  console.log('Parent Message ID:', parentMessageId);
+  console.log('================================');
+
   logger.debug('[AskController]', {
     text,
     conversationId,

@@ -35,6 +35,11 @@ const getCustomEndpointConfig = async (endpoint) => {
 
   const { endpoints = {} } = customConfig;
   const customEndpoints = endpoints[EModelEndpoint.custom] ?? [];
+
+  // Debug print the custom end point config
+  console.log('[DEBUG] Custom endpoint config:');
+  console.log(customEndpoints);
+
   return customEndpoints.find(
     (endpointConfig) => normalizeEndpointName(endpointConfig.name) === endpoint,
   );

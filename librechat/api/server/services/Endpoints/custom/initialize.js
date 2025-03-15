@@ -132,6 +132,11 @@ const initializeClient = async ({ req, res, endpointOption, optionsOnly, overrid
     ...endpointOption,
   };
 
+  console.log('[DEBUG] Custom endpoint options with promptPrefix:', JSON.stringify({
+    endpoint: clientOptions.endpoint,
+    promptPrefix: clientOptions.promptPrefix
+  }, null, 2));
+
   if (optionsOnly) {
     const modelOptions = endpointOption.model_parameters;
     if (endpoint !== Providers.OLLAMA) {
