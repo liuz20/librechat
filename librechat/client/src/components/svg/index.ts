@@ -13,6 +13,7 @@ export { default as LogOutIcon } from './LogOutIcon';
 export { default as CustomMinimalIcon } from './CustomMinimalIcon';
 export { default as LightningIcon } from './LightningIcon';
 export { default as AttachmentIcon } from './AttachmentIcon';
+export { default as AttachmentDisabledIcon } from './AttachmentDisabledIcon';
 export { default as MessagesSquared } from './MessagesSquared';
 export { default as StopGeneratingIcon } from './StopGeneratingIcon';
 export { default as RegenerateIcon } from './RegenerateIcon';

@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { FileUpload, TooltipAnchor } from '~/components/ui';
-import { AttachmentIcon } from '~/components/svg';
+import { AttachmentIcon, AttachmentDisabledIcon } from '~/components/svg';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 
@@ -15,7 +15,7 @@ const AttachFile = ({
 }) => {
   const localize = useLocalize();
   const inputRef = useRef<HTMLInputElement>(null);
-  const isUploadDisabled = disabled ?? false;
+  const isUploadDisabled = true; // TODO (ZL): currently forced diabled, remove this later
 
   return (
     <FileUpload ref={inputRef} handleFileChange={handleFileChange}>
@@ -47,7 +47,7 @@ const AttachFile = ({
         }}
       >
         <div className="flex w-full items-center justify-center gap-2">
-          <AttachmentIcon />
+          {isUploadDisabled ? <AttachmentDisabledIcon /> : <AttachmentIcon />}
         </div>
       </TooltipAnchor>
     </FileUpload>
