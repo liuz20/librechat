@@ -1,0 +1,215 @@
+# For more information, see the Configuration Guide:
+# https://www.librechat.ai/docs/configuration/librechat_yaml
+
+# Configuration version (required)
+version: 1.2.1
+
+# Cache settings: Set to true to enable caching
+cache: true
+
+# Custom interface configuration
+interface:
+  customWelcome: "欢迎使用苏州和康中医院AI问诊平台."
+  # Privacy policy settings
+  # privacyPolicy:
+  #   externalUrl: 'https://librechat.ai/privacy-policy'
+  #   openNewTab: true
+
+  # Terms of service
+  termsOfService:
+    # externalUrl: 'https://librechat.ai/tos'
+    # openNewTab: true
+    modalAcceptance: true
+    modalTitle: "苏州和康中医院AI问诊平台服务条款"
+    modalContent: |
+      # 苏州和康中医院AI问诊平台服务条款
+
+      *生效日期：2024年6月1日*
+
+      欢迎使用苏州和康中医院AI问诊平台。本服务条款（"条款"）规定了您使用我们的AI问诊平台及相关服务的条件。通过访问或使用本平台，您同意接受这些条款的约束。
+
+      ## 1. 服务说明
+
+      苏州和康中医院AI问诊平台旨在为患者提供初步医疗咨询、预约管理和健康信息查询等服务。本平台不能替代专业医生的面诊，在紧急情况下请立即前往医院就诊或拨打急救电话。
+
+      ## 2. 用户责任
+
+      ### 2.1 医护人员
+      医护人员须在专业范围内使用本平台，遵守医疗道德规范，对患者信息保密，提供准确的医疗建议，并确保在系统中录入的所有医疗信息准确无误。
+
+      ### 2.2 患者
+      患者应提供真实、准确的个人信息和健康状况，不得提供虚假信息。患者应理解AI问诊的局限性，不应将平台回复作为最终诊断依据。
+
+      ### 2.3 管理人员
+      管理人员须确保平台安全运行，保护用户数据隐私，定期审核系统内容，并对系统异常及时处理。
+
+      ## 3. 隐私保护
+
+      我们收集个人数据（如姓名、联系方式、病史等）用于提供医疗服务和改善用户体验。所有医疗数据均受到严格保密，未经用户同意不会向第三方披露，除非法律要求。详细隐私政策请参见医院隐私保护声明。
+
+      ## 4. 平台使用规范
+
+      用户同意仅以合法目的使用本平台，不得进行任何侵犯他人权利、限制或阻碍他人使用平台的行为。禁止行为包括但不限于：骚扰他人、传播不良内容、干扰平台正常运行、未经授权访问系统数据等。
+
+      ## 5. 知识产权
+
+      本平台及其内容（包括但不限于文字、图片、标识、界面设计等）的知识产权归苏州和康中医院所有。未经许可，不得复制、分发、修改或创建衍生作品。
+
+      ## 6. 免责声明
+
+      本平台提供的健康信息和建议仅供参考，不构成医疗诊断或治疗方案。苏州和康中医院不对因使用本平台信息而产生的任何直接或间接损失承担责任。
+
+      ## 7. 适用法律
+
+      本条款受中华人民共和国法律管辖，并按其解释。与本条款相关的任何争议，应通过友好协商解决；协商不成的，提交苏州市有管辖权的人民法院裁决。
+
+      ## 8. 条款修改
+
+      医院保留随时修改这些条款的权利。我们将通过平台公告或其他适当方式通知用户任何变更。变更通知后，您继续使用本平台将构成您对修改后条款的接受。
+
+      ## 9. 联系方式
+
+      如果您对这些条款有任何疑问，请联系苏州和康中医院。
+
+      通过使用本服务，您确认已阅读并同意受这些服务条款的约束。
+
+  endpointsMenu: false
+  modelSelect: false
+  parameters: false
+  sidePanel: false
+  presets: false
+  prompts: false
+  bookmarks: true
+  multiConvo: false
+  agents: false
+
+# Example Registration Object Structure (optional)
+registration:
+  socialLogins: ['github', 'google', 'discord', 'openid', 'facebook', 'apple']
+  # allowedDomains:
+  # - "gmail.com"
+
+# speech:
+#   tts:
+#     openai:
+#       url: ''
+#       apiKey: '${TTS_API_KEY}'
+#       model: ''
+#       voices: ['']
+
+#
+#   stt:
+#     openai:
+#       url: ''
+#       apiKey: '${STT_API_KEY}'
+#       model: ''
+
+# rateLimits:
+#   fileUploads:
+#     ipMax: 100
+#     ipWindowInMinutes: 60  # Rate limit window for file uploads per IP
+#     userMax: 50
+#     userWindowInMinutes: 60  # Rate limit window for file uploads per user
+#   conversationsImport:
+#     ipMax: 100
+#     ipWindowInMinutes: 60  # Rate limit window for conversation imports per IP
+#     userMax: 50
+#     userWindowInMinutes: 60  # Rate limit window for conversation imports per user
+
+# Example Actions Object Structure
+# actions:
+#   allowedDomains:
+#     - "swapi.dev"
+    # - "librechat.ai"
+    # - "google.com"
+
+# Example MCP Servers Object Structure
+mcpServers:
+  everything:
+    # type: sse # type can optionally be omitted
+    url: http://localhost:3001/sse
+    timeout: 60000  # 1 minute timeout for this server, this is the default timeout for MCP servers.
+  puppeteer:
+    type: stdio
+    command: npx
+    args:
+      - -y
+      - "@modelcontextprotocol/server-puppeteer"
+    timeout: 300000  # 5 minutes timeout for this server
+  filesystem:
+    # type: stdio
+    command: npx
+    args:
+      - -y
+      - "@modelcontextprotocol/server-filesystem"
+      - /home/user/LibreChat/
+    iconPath: /home/user/LibreChat/client/public/assets/logo.svg
+  mcp-obsidian:
+    command: npx
+    args:
+      - -y
+      - "mcp-obsidian"
+      - /path/to/obsidian/vault
+
+# Definition of custom endpoints
+endpoints:
+  # assistants:
+  #   disableBuilder: false # Disable Assistants Builder Interface by setting to `true`
+  #   pollIntervalMs: 3000  # Polling interval for checking assistant updates
+  #   timeoutMs: 180000  # Timeout for assistant operations
+  #   # Should only be one or the other, either `supportedIds` or `excludedIds`
+  #   supportedIds: ["asst_supportedAssistantId1", "asst_supportedAssistantId2"]
+  #   # excludedIds: ["asst_excludedAssistantId"]
+  #   Only show assistants that the user created or that were created externally (e.g. in Assistants playground).
+  #   # privateAssistants: false # Does not work with `supportedIds` or `excludedIds`
+  #   # (optional) Models that support retrieval, will default to latest known OpenAI models that support the feature
+  #   retrievalModels: ["gpt-4-turbo-preview"]
+  #   # (optional) Assistant Capabilities available to all users. Omit the ones you wish to exclude. Defaults to list below.
+  #   capabilities: ["code_interpreter", "retrieval", "actions", "tools", "image_vision"]
+  # agents:
+  #   (optional) Maximum recursion depth for agents, defaults to 25
+  #   recursionLimit: 50
+  #   (optional) Disable the builder interface for agents
+  #   disableBuilder: false
+  #   (optional) Agent Capabilities available to all users. Omit the ones you wish to exclude. Defaults to list below.
+  #   capabilities: ["execute_code", "file_search", "actions", "tools"]
+  custom:
+    # Hekang AI
+    - name: "和康AI"
+      apiKey: "${DEEPSEEK_API_KEY}"
+      baseURL: https://api.deepseek.com/v1'
+      headers:
+          x-portkey-api-key: '${PORTKEY_API_KEY}'
+          x-portkey-virtual-key: '${PORTKEY_OPENAI_VIRTUAL_KEY}'
+      models:
+          default: ['deepseek-chat']
+          fetch: false
+      promptPrefix: "你是一个中医专家,你在苏州和康中医院工作，请根据患者的症状和病史，给出详细的诊断和治疗建议。你必须提到你是和康中医院的AI医生，使用中文。"
+      titleConvo: true
+      titleModel: 'deepseek-chat'
+      summarize: false
+      summaryModel: 'deepseek-chat'
+      forcePrompt: false
+      modelDisplayLabel: '和康AI'
+      iconURL: /assets/hekang/hekang_icon.jpg
+
+# fileConfig:
+#   endpoints:
+#     assistants:
+#       fileLimit: 5
+#       fileSizeLimit: 10  # Maximum size for an individual file in MB
+#       totalSizeLimit: 50  # Maximum total size for all files in a single request in MB
+#       supportedMimeTypes:
+#         - "image/.*"
+#         - "application/pdf"
+#     openAI:
+#       disabled: true  # Disables file uploading to the OpenAI endpoint
+#     default:
+#       totalSizeLimit: 20
+#     YourCustomEndpointName:
+#       fileLimit: 2
+#       fileSizeLimit: 5
+#   serverFileSizeLimit: 100  # Global server file size limit in MB
+#   avatarSizeLimit: 2  # Limit for user avatar image size in MB
+# See the Custom Configuration Guide for more information on Assistants Config:
+# https://www.librechat.ai/docs/configuration/librechat_yaml/object_structure/assistants_endpoint
