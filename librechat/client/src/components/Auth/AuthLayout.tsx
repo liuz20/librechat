@@ -61,10 +61,10 @@ function AuthLayout({
     <div className="relative flex min-h-screen flex-col bg-white dark:bg-gray-900">
       <Banner />
       <BlinkAnimation active={isFetching}>
-        <div className="mt-6 h-10 w-full bg-cover">
+        <div className="mt-6 h-60 w-full bg-cover">
           <img
-            src="/assets/logo.svg"
-            className="h-full w-full object-contain"
+            src="/assets/hekang/hekang_icon.jpg"
+            className="h-full w-full object-scale-down"
             alt={localize('com_ui_logo', { 0: startupConfig?.appTitle ?? 'LibreChat' })}
           />
         </div>
@@ -72,6 +72,10 @@ function AuthLayout({
       <DisplayError />
       <div className="absolute bottom-0 left-0 md:m-4">
         <ThemeSelector />
+      </div>
+      <div className="flex flex-grow items-center justify-center">
+        <p className="text-center text-2xl font-semibold text-black dark:text-white max-w-md">
+            欢迎使用和康AI, 我们为您提供中医咨询和导诊服务，注册账号或登陆一个已有账号来开始使用AI服务。</p>
       </div>
 
       <div className="flex flex-grow items-center justify-center">
