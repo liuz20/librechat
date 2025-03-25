@@ -20,6 +20,8 @@ export interface IUser extends Document {
   plugins?: unknown[];
   twoFactorEnabled?: boolean;
   totpSecret?: string;
+  phoneNumber?: string;
+  phoneVerified: boolean;
   backupCodes?: Array<{
     codeHash: string;
     used: boolean;
@@ -154,6 +156,17 @@ const User = new Schema<IUser>(
     },
     termsAccepted: {
       type: Boolean,
+      default: false,
+    },
+    phoneNumber: {
+      type: String,
+      unique: true,
+      sparse: true,
+      match: [/^\+?[1-9]\d{1,14}$/, 'is not a valid phone number in E.164 format'],
+    },
+    phoneVerified: {
+      type: Boolean,
+      required: true,
       default: false,
     },
   },

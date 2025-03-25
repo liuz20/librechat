@@ -10,6 +10,8 @@ const router = express.Router();
 const emailLoginEnabled =
   process.env.ALLOW_EMAIL_LOGIN === undefined || isEnabled(process.env.ALLOW_EMAIL_LOGIN);
 const passwordResetEnabled = isEnabled(process.env.ALLOW_PASSWORD_RESET);
+const phoneLoginEnabled = isEnabled(process.env.ALLOW_PHONE_LOGIN);
+const phoneRegistrationEnabled = isEnabled(process.env.ALLOW_PHONE_REGISTRATION);
 
 const sharedLinksEnabled =
   process.env.ALLOW_SHARED_LINKS === undefined || isEnabled(process.env.ALLOW_SHARED_LINKS);
@@ -78,6 +80,8 @@ router.get('/', async function (req, res) {
       modelSpecs: req.app.locals.modelSpecs,
       sharedLinksEnabled,
       publicSharedLinksEnabled,
+      phoneLoginEnabled,
+      phoneRegistrationEnabled,
       analyticsGtmId: process.env.ANALYTICS_GTM_ID,
       instanceProjectId: instanceProject._id.toString(),
       bundlerURL: process.env.SANDPACK_BUNDLER_URL,

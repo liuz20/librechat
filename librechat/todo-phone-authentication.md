@@ -483,3 +483,148 @@ npm install @alicloud/pop-core --save
    - Add Chinese translations for error messages and UI text
    - Create user guides for the new phone authentication flow
 
+## 12. Testing and Verification
+
+This section provides detailed steps for testing the phone authentication implementation.
+
+### Environment Setup
+
+1. Configure the required environment variables in your `.env` file:
+   ```
+   # Phone Authentication Enablement
+   ALLOW_PHONE_LOGIN=true
+   ALLOW_PHONE_REGISTRATION=true
+
+   # Aliyun SMS Configuration
+   ALIYUN_ACCESS_KEY_ID=your_access_key_id
+   ALIYUN_ACCESS_KEY_SECRET=your_access_key_secret
+   ALIYUN_SMS_SIGN_NAME=your_sign_name
+   ALIYUN_SMS_TEMPLATE_CODE=your_template_code
+   ```
+
+2. If using Redis for verification code storage in production:
+   ```
+   REDIS_URI=your_redis_connection_string
+   ```
+
+### Verification Steps
+
+#### Backend Testing
+
+1. **Test SMS Service**:
+   ```bash
+   curl -X POST http://localhost:3080/api/auth/send-verification-code \
+     -H "Content-Type: application/json" \
+     -d '{"phoneNumber": "+86XXXXXXXXXX"}'
+   ```
+   - Verify you receive a success response
+   - Check that SMS is received on the target phone
+
+2. **Test Phone Verification**:
+   ```bash
+   curl -X POST http://localhost:3080/api/auth/verify-phone \
+     -H "Content-Type: application/json" \
+     -d '{"phoneNumber": "+86XXXXXXXXXX", "code": "123456"}'
+   ```
+   - Use the actual verification code received
+   - Verify success/failure responses
+
+3. **Test Phone Registration**:
+   ```bash
+   curl -X POST http://localhost:3080/api/auth/phone-register \
+     -H "Content-Type: application/json" \
+     -d '{"name": "Test User", "username": "testuser", "phoneNumber": "+86XXXXXXXXXX", "password": "password123", "confirm_password": "password123"}'
+   ```
+   - Verify user creation in database
+   - Check phoneVerified flag is true
+
+4. **Test Phone Login**:
+   ```bash
+   curl -X POST http://localhost:3080/api/auth/phone-login \
+     -H "Content-Type: application/json" \
+     -d '{"phoneNumber": "+86XXXXXXXXXX", "password": "password123"}'
+   ```
+   - Verify authentication token is returned
+
+#### Frontend Testing
+
+1. **Navigation Testing**:
+   - Verify login page shows "Login with Phone Number" link
+   - Verify registration page shows "Sign up with Phone Number" link
+   - Test navigation between different auth pages
+
+2. **Phone Registration Flow**:
+   - Enter phone number and request verification code
+   - Verify code delivery (check if SMS is received)
+   - Enter verification code
+   - Complete registration with user details
+   - Verify successful registration and redirect
+
+3. **Phone Login Flow**:
+   - Enter phone number and password
+   - Verify successful login and redirect
+   - Test with incorrect credentials to verify error handling
+
+4. **Phone Verification Process**:
+   - Test code expiration (wait > 5 minutes)
+   - Test incorrect code entry
+   - Test resending verification code
+
+### Edge Cases to Test
+
+1. **Phone Number Format**:
+   - Test various international formats
+   - Test invalid phone numbers
+   - Test Chinese mainland numbers specifically
+
+2. **Verification Code**:
+   - Test with expired codes
+   - Test with incorrect codes
+   - Test rate limiting for code requests
+
+3. **User Registration**:
+   - Test registering with already registered phone number
+   - Test weak passwords and validation errors
+   - Test username uniqueness constraints
+
+4. **Login Issues**:
+   - Test login with unverified phone numbers
+   - Test account lockout after multiple failed attempts
+   - Test 2FA flow if enabled
+
+### Performance Testing
+
+1. **SMS Delivery**:
+   - Measure average delivery time
+   - Test under load with multiple requests
+
+2. **Verification Storage**:
+   - Test with in-memory storage vs. Redis
+   - Compare performance and reliability
+
+### Security Testing
+
+1. **Input Validation**:
+   - Test with SQL injection attempts in phone fields
+   - Test with XSS attempts in user fields
+
+2. **Rate Limiting**:
+   - Test bypassing rate limits
+   - Verify IP-based restrictions work
+
+3. **Token Security**:
+   - Verify auth tokens have proper expiration
+   - Test token revocation on logout
+
+### Production Readiness Checklist
+
+- [ ] All environment variables properly configured
+- [ ] Redis configured for verification code storage
+- [ ] Rate limiting properly set up
+- [ ] Aliyun SMS account has sufficient balance
+- [ ] Error logging and monitoring in place
+- [ ] Chinese translations complete
+- [ ] Mobile responsive UI tested
+- [ ] Load testing completed successfully
+
+With these testing steps, you should be able to thoroughly verify your phone authentication implementation before deploying to production.

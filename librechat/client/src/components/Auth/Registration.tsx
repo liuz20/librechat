@@ -205,6 +205,18 @@ const Registration: React.FC = () => {
               {localize('com_auth_login')}
             </a>
           </p>
+          
+          {startupConfig?.phoneRegistrationEnabled && (
+            <p className="mt-4 text-center text-sm font-light text-gray-700 dark:text-white">
+              <a
+                href="/register-phone"
+                aria-label="Register with Phone Number"
+                className="inline-flex p-1 text-sm font-medium text-green-600 transition-colors hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+              >
+                {localize('com_auth_sign_up_with_phone')}
+              </a>
+            </p>
+          )}
         </>
       )}
     </>

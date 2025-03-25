@@ -5,6 +5,13 @@ const {
   resetPasswordController,
   resetPasswordRequestController,
 } = require('~/server/controllers/AuthController');
+const {
+  sendVerificationCodeController,
+  verifyPhoneController,
+  phoneRegistrationController,
+  phoneLoginController,
+  linkPhoneController,
+} = require('~/server/controllers/PhoneAuthController');
 const { loginController } = require('~/server/controllers/auth/LoginController');
 const { logoutController } = require('~/server/controllers/auth/LogoutController');
 const { verify2FA } = require('~/server/controllers/auth/TwoFactorAuthController');
@@ -25,6 +32,9 @@ const {
   resetPasswordLimiter,
   validateRegistration,
   validatePasswordReset,
+  validatePhoneRegistration,
+  validatePhoneLogin,
+  smsLimiter,
 } = require('~/server/middleware');
 
 const router = express.Router();
@@ -63,5 +73,25 @@ router.post('/2fa/verify-temp', checkBan, verify2FA);
 router.post('/2fa/confirm', requireJwtAuth, confirm2FAController);
 router.post('/2fa/disable', requireJwtAuth, disable2FAController);
 router.post('/2fa/backup/regenerate', requireJwtAuth, regenerateBackupCodesController);
+
+// Phone authentication routes
+router.post('/send-verification-code', smsLimiter, checkBan, sendVerificationCodeController);
+router.post('/verify-phone', checkBan, verifyPhoneController);
+router.post(
+  '/phone-register',
+  registerLimiter,
+  checkBan,
+  checkInviteUser,
+  validatePhoneRegistration,
+  phoneRegistrationController
+);
+router.post(
+  '/phone-login',
+  loginLimiter,
+  checkBan,
+  validatePhoneLogin,
+  phoneLoginController
+);
+router.post('/link-phone', requireJwtAuth, linkPhoneController);
 
 module.exports = router;

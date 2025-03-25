@@ -16,6 +16,7 @@ const allowedCharactersRegex = new RegExp(
   'u', // Use Unicode mode
 );
 const injectionPatternsRegex = /('|--|\$ne|\$gt|\$lt|\$or|\{|\}|\*|;|<|>|\/|=)/i;
+const phoneRegex = /^\+?[1-9]\d{1,14}$/; // E.164 format
 
 const usernameSchema = z
   .string()
@@ -72,7 +73,53 @@ const registerSchema = z
     }
   });
 
+const phoneLoginSchema = z.object({
+  phoneNumber: z.string().regex(phoneRegex, { message: "Invalid phone number format" }),
+  password: z
+    .string()
+    .min(8)
+    .max(128)
+    .refine((value) => value.trim().length > 0, {
+      message: 'Password cannot be only spaces',
+    }),
+});
+
+const phoneRegisterSchema = z
+  .object({
+    name: z.string().min(3).max(80),
+    username: z
+      .union([z.literal(''), usernameSchema])
+      .transform((value) => (value === '' ? null : value))
+      .optional()
+      .nullable(),
+    phoneNumber: z.string().regex(phoneRegex, { message: "Invalid phone number format" }),
+    password: z
+      .string()
+      .min(8)
+      .max(128)
+      .refine((value) => value.trim().length > 0, {
+        message: 'Password cannot be only spaces',
+      }),
+    confirm_password: z
+      .string()
+      .min(8)
+      .max(128)
+      .refine((value) => value.trim().length > 0, {
+        message: 'Password cannot be only spaces',
+      }),
+  })
+  .superRefine(({ confirm_password, password }, ctx) => {
+    if (confirm_password !== password) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'The passwords did not match',
+      });
+    }
+  });
+
 module.exports = {
   loginSchema,
   registerSchema,
+  phoneLoginSchema,
+  phoneRegisterSchema,
 };
