@@ -1,5 +1,5 @@
 const { createClient } = require('redis');
-const logger = require('../../config/logger');
+const { logger } = require('~/config');
 
 // In-memory storage for development mode
 const memoryStorage = new Map();

@@ -1,132 +1,143 @@
 const User = require('../../models/User');
 const { getVerificationCodeFromStorage, saveVerificationCodeToStorage } = require('../utils/verificationStorage');
 const { generateVerificationCode } = require('../utils/generators');
-const passport = require('passport');
 const jwt = require('jsonwebtoken');
-const logger = require('../utils/logger');
+const { logger } = require('~/config');
 const { phoneLoginSchema, phoneRegisterSchema } = require('../../strategies/validators');
-const { validateSchema } = require('../middlewares/validationMiddleware');
-const { SMSService } = require('../services/SMSService');
+const SMSService = require('../services/SMSService');
 
 /**
- * Send a verification code to the phone number
- * @route POST /api/auth/phone/send-verification-code
+ * @typedef {Object} ErrorResponse
+ * @property {string} message - Error message
  */
-const sendVerificationCodeController = async (req, res) => {
+
+/**
+ * Request verification code for phone number
+ * @route POST /api/auth/phone/request-verification
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+const requestVerificationController = async (req, res) => {
   try {
-    const { phoneNumber } = req.body;
+    const { phone } = req.body;
     
-    if (!phoneNumber) {
+    if (!phone) {
       return res.status(400).json({ message: 'Phone number is required' });
     }
-    
-    // Generate a random 6-digit verification code
+
+    // Basic phone number format check
+    if (!/^\+?[1-9]\d{1,14}$/.test(phone)) {
+      return res.status(400).json({ message: 'Invalid phone number format' });
+    }
+
     const code = generateVerificationCode();
+    // Store with 5-minute expiration (300 seconds)
+    await saveVerificationCodeToStorage(phone, code, 300);
     
-    // Save the verification code to storage (in-memory for development, Redis for production)
-    await saveVerificationCodeToStorage(phoneNumber, code);
-    
-    // Send the verification code via SMS
     try {
-      await SMSService.sendVerificationCode(phoneNumber, code);
-      logger.info(`Verification code sent to ${phoneNumber}`);
+      await SMSService.sendVerificationCode(phone, code);
+      logger.info(`Verification code sent to ${phone}`);
       return res.status(200).json({ message: 'Verification code sent successfully' });
     } catch (smsError) {
-      logger.error('[sendVerificationCodeController] SMS sending error:', smsError);
-      return res.status(500).json({ message: 'Failed to send verification code' });
+      logger.error('[requestVerificationController] SMS error:', smsError);
+      return res.status(503).json({ message: 'Failed to send verification code' });
     }
   } catch (error) {
-    logger.error('[sendVerificationCodeController]', error);
+    logger.error('[requestVerificationController]', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 /**
- * Verify a phone number with the provided verification code
- * @route POST /api/auth/phone/verify
+ * Verify phone number with code
+ * @route POST /api/auth/phone/verify-code
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
  */
-const verifyPhoneController = async (req, res) => {
+const verifyCodeController = async (req, res) => {
   try {
-    const { phoneNumber, code } = req.body;
+    const { phone, verificationCode } = req.body;
     
-    if (!phoneNumber || !code) {
+    if (!phone || !verificationCode) {
       return res.status(400).json({ message: 'Phone number and verification code are required' });
     }
-    
-    // Get the stored verification code
-    const storedCode = await getVerificationCodeFromStorage(phoneNumber);
+
+    const storedCode = await getVerificationCodeFromStorage(phone);
     
     if (!storedCode) {
-      return res.status(400).json({ message: 'Verification code has expired or does not exist' });
+      return res.status(400).json({ message: 'Verification code expired or not found' });
     }
     
-    // Verify the code
-    if (storedCode !== code) {
+    if (storedCode !== verificationCode) {
       return res.status(400).json({ message: 'Invalid verification code' });
     }
     
     return res.status(200).json({ message: 'Phone number verified successfully' });
   } catch (error) {
-    logger.error('[verifyPhoneController]', error);
+    logger.error('[verifyCodeController]', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 /**
- * Register a new user with phone number
+ * Register new user with phone number
  * @route POST /api/auth/phone/register
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
  */
 const phoneRegisterController = async (req, res) => {
-  // Validate request body
-  const { error, value } = phoneRegisterSchema.validate(req.body);
+  const { error, value } = phoneRegisterSchema.validate(req.body, { abortEarly: false });
   if (error) {
-    return res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.details[0].message });
   }
-  
-  const { phoneNumber, code, username, password } = value;
-  
+
+  const { phone, verificationCode, username, name, password, token } = value;
+
   try {
-    // Check if the phone number is already registered
-    const existingUser = await User.findOne({ phoneNumber });
+    const existingUser = await User.findOne({ $or: [{ phone }, { username }] });
     if (existingUser) {
-      return res.status(400).json({ message: 'Phone number is already registered' });
+      return res.status(400).json({ 
+        message: existingUser.phone === phone 
+          ? 'Phone number already registered' 
+          : 'Username already taken' 
+      });
     }
-    
-    // Verify the code
-    const storedCode = await getVerificationCodeFromStorage(phoneNumber);
-    if (!storedCode || storedCode !== code) {
-      return res.status(400).json({ message: 'Invalid verification code' });
+
+    const storedCode = await getVerificationCodeFromStorage(phone);
+    if (!storedCode || storedCode !== verificationCode) {
+      return res.status(400).json({ message: 'Invalid or expired verification code' });
     }
-    
-    // Create the new user
+
     const newUser = new User({
       username,
-      phoneNumber,
+      name,
+      phone,
       phoneVerified: true
     });
-    
-    // Set password
+
     await newUser.setPassword(password);
-    
-    // Save the user
     await newUser.save();
-    
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: newUser._id, username: newUser.username },
+
+    const jwtPayload = { id: newUser._id, username: newUser.username };
+    const jwtToken = jwt.sign(
+      jwtPayload,
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
-    
-    logger.info(`User registered with phone number: ${phoneNumber}`);
+
+    logger.info(`User registered with phone: ${phone}`);
     
     return res.status(201).json({
       message: 'User registered successfully',
-      token,
+      token: jwtToken,
       user: {
         id: newUser._id,
         username: newUser.username,
-        phoneNumber: newUser.phoneNumber,
+        name: newUser.name,
+        phone: newUser.phone,
         phoneVerified: newUser.phoneVerified
       }
     });
@@ -139,51 +150,51 @@ const phoneRegisterController = async (req, res) => {
 /**
  * Login with phone number and verification code
  * @route POST /api/auth/phone/login
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
  */
 const phoneLoginController = async (req, res) => {
-  // Validate request body
   const { error, value } = phoneLoginSchema.validate(req.body);
   if (error) {
-    return res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.details[0].message });
   }
-  
-  const { phoneNumber, code } = value;
-  
+
+  const { phone, verificationCode } = value;
+
   try {
-    // Find the user by phone number
-    const user = await User.findOne({ phoneNumber });
+    const user = await User.findOne({ phone });
     if (!user) {
-      return res.status(400).json({ message: 'User not found with this phone number' });
+      return res.status(404).json({ message: 'No user found with this phone number' });
     }
-    
-    // Verify the code
-    const storedCode = await getVerificationCodeFromStorage(phoneNumber);
-    if (!storedCode || storedCode !== code) {
-      return res.status(400).json({ message: 'Invalid verification code' });
+
+    const storedCode = await getVerificationCodeFromStorage(phone);
+    if (!storedCode || storedCode !== verificationCode) {
+      return res.status(400).json({ message: 'Invalid or expired verification code' });
     }
-    
-    // If the user's phone is not verified, mark it as verified
+
     if (!user.phoneVerified) {
       user.phoneVerified = true;
       await user.save();
     }
-    
-    // Generate JWT token
+
+    const jwtPayload = { id: user._id, username: user.username };
     const token = jwt.sign(
-      { id: user._id, username: user.username },
+      jwtPayload,
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
-    
-    logger.info(`User logged in with phone number: ${phoneNumber}`);
-    
+
+    logger.info(`User logged in with phone: ${phone}`);
+
     return res.status(200).json({
       message: 'Login successful',
       token,
       user: {
         id: user._id,
         username: user.username,
-        phoneNumber: user.phoneNumber,
+        name: user.name,
+        phone: user.phone,
         phoneVerified: user.phoneVerified
       }
     });
@@ -194,50 +205,134 @@ const phoneLoginController = async (req, res) => {
 };
 
 /**
- * Link a phone number to an existing account
+ * Link phone number to existing account
  * @route POST /api/auth/phone/link
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
  */
 const linkPhoneController = async (req, res) => {
   try {
-    const userId = req.user._id; // Assuming authentication middleware sets req.user
-    const { phoneNumber, code } = req.body;
-    
-    if (!phoneNumber || !code) {
-      return res.status(400).json({ message: 'Phone number and verification code are required' });
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
     }
-    
-    // Check if the phone number is already used by another account
-    const existingUser = await User.findOne({ phoneNumber, _id: { $ne: userId } });
+
+    const { phone, verificationCode } = req.body;
+    if (!phone || !verificationCode) {
+      return res.status(400).json({ message: 'Phone number and verification code required' });
+    }
+
+    const existingUser = await User.findOne({ phone, _id: { $ne: userId } });
     if (existingUser) {
-      return res.status(400).json({ message: 'Phone number is already linked to another account' });
+      return res.status(400).json({ message: 'Phone number already linked to another account' });
     }
-    
-    // Verify the code
-    const storedCode = await getVerificationCodeFromStorage(phoneNumber);
-    if (!storedCode || storedCode !== code) {
-      return res.status(400).json({ message: 'Invalid verification code' });
+
+    const storedCode = await getVerificationCodeFromStorage(phone);
+    if (!storedCode || storedCode !== verificationCode) {
+      return res.status(400).json({ message: 'Invalid or expired verification code' });
     }
-    
-    // Update the user's phone number
-    await User.findByIdAndUpdate(userId, {
-      phoneNumber,
-      phoneVerified: true
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { phone, phoneVerified: true },
+      { new: true }
+    );
+
+    logger.info(`Phone ${phone} linked to user ID: ${userId}`);
+
+    return res.status(200).json({
+      message: 'Phone number linked successfully',
+      user: {
+        id: user._id,
+        username: user.username,
+        name: user.name,
+        phone: user.phone,
+        phoneVerified: user.phoneVerified
+      }
     });
-    
-    logger.info(`Phone number ${phoneNumber} linked to user ID: ${userId}`);
-    
-    return res.status(200).json({ message: 'Phone number linked successfully' });
   } catch (error) {
     logger.error('[linkPhoneController]', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-module.exports = {
-  sendVerificationCodeController,
-  verifyPhoneController,
-  phoneRegisterController,
-  phoneLoginController,
-  linkPhoneController
+/**
+ * Send verification code for phone number
+ * @route POST /api/auth/phone/send-verification
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+const sendVerificationCodeController = async (req, res) => {
+  try {
+    const { phone } = req.body;
+    
+    if (!phone) {
+      return res.status(400).json({ message: 'Phone number is required' });
+    }
+
+    // Validate phone number format
+    if (!/^\+?[1-9]\d{1,14}$/.test(phone)) {
+      return res.status(400).json({ message: 'Invalid phone number format' });
+    }
+
+    const code = generateVerificationCode();
+    // Store with 5-minute expiration (300 seconds)
+    await saveVerificationCodeToStorage(phone, code, 300);
+    
+    try {
+      await SMSService.sendVerificationCode(phone, code);
+      logger.info(`Verification code sent to ${phone}`);
+      return res.status(200).json({ message: 'Verification code sent successfully' });
+    } catch (smsError) {
+      logger.error('[sendVerificationCodeController] SMS error:', smsError);
+      return res.status(503).json({ message: 'Failed to send verification code' });
+    }
+  } catch (error) {
+    logger.error('[sendVerificationCodeController]', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
 };
 
+/**
+ * Verify phone number
+ * @route POST /api/auth/phone/verify-phone
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+const verifyPhoneController = async (req, res) => {
+  try {
+    const { phone, verificationCode } = req.body;
+    
+    if (!phone || !verificationCode) {
+      return res.status(400).json({ message: 'Phone number and verification code are required' });
+    }
+
+    const storedCode = await getVerificationCodeFromStorage(phone);
+    
+    if (!storedCode) {
+      return res.status(400).json({ message: 'Verification code expired or not found' });
+    }
+    
+    if (storedCode !== verificationCode) {
+      return res.status(400).json({ message: 'Invalid verification code' });
+    }
+    
+    return res.status(200).json({ message: 'Phone number verified successfully' });
+  } catch (error) {
+    logger.error('[verifyPhoneController]', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+module.exports = {
+  requestVerificationController,
+  verifyCodeController,
+  phoneRegisterController,
+  phoneLoginController,
+  linkPhoneController,
+  sendVerificationCodeController,
+  verifyPhoneController
+};

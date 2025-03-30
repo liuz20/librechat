@@ -8,7 +8,7 @@ const {
 const {
   sendVerificationCodeController,
   verifyPhoneController,
-  phoneRegistrationController,
+  phoneRegisterController,
   phoneLoginController,
   linkPhoneController,
 } = require('~/server/controllers/PhoneAuthController');
@@ -83,7 +83,7 @@ router.post(
   checkBan,
   checkInviteUser,
   validatePhoneRegistration,
-  phoneRegistrationController
+  phoneRegisterController
 );
 router.post(
   '/phone-login',

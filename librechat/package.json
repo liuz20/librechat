@@ -143,5 +143,11 @@
       "admin/",
       "packages/"
     ]
+  },
+  "dependencies": {
+    "@alicloud/dysmsapi20170525": "^3.1.2",
+    "@alicloud/openapi-client": "^0.4.13",
+    "@alicloud/tea-util": "^1.4.10",
+    "redis": "^4.7.0"
   }
 }

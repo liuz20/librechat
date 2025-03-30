@@ -1,46 +1,79 @@
 const { z } = require('zod');
 const { getResponseStatusCode } = require('../../utils');
-const { phoneLoginSchema } = require('../../strategies/validators');
-const { getApiConfig } = require('~/server/utils/ApiConfig');
+const { logger } = require('~/config');
+
+/**
+ * Zod schema for phone login validation
+ * @type {z.ZodObject}
+ */
+const phoneLoginSchema = z.object({
+  phone: z
+    .string()
+    .min(1, 'Phone number is required')
+    .regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format'),
+  verificationCode: z
+    .string()
+    .length(6, 'Verification code must be 6 digits')
+    .regex(/^\d+$/, 'Verification code must contain only numbers'),
+});
 
 /**
  * Middleware to validate phone login requests
- * Checks if phone login is enabled and validates the phone number and verification code
+ * Ensures phone login is enabled and validates request body
  *
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next function
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @param {import('express').NextFunction} next - Express next middleware function
+ * @returns {Promise<void>}
  */
 const validatePhoneLogin = async (req, res, next) => {
   try {
-    const apiConfig = getApiConfig();
-    
     // Check if phone authentication is enabled
-    if (!apiConfig?.phoneLogin?.enabled) {
-      return res.status(400).json({ message: 'Phone login is not enabled' });
-    }
-
-    // Validate request body against the phone login schema
-    const validationResult = phoneLoginSchema.safeParse(req.body);
-
-    if (!validationResult.success) {
-      const statusCode = getResponseStatusCode(validationResult.error);
-      const errorMessage = validationResult.error.issues.map(issue => issue.message).join(', ');
-      
-      return res.status(statusCode).json({ 
-        message: 'Phone login validation failed', 
-        error: errorMessage 
+    if (!process.env.PHONE_AUTH_ENABLED || process.env.PHONE_AUTH_ENABLED !== 'true') {
+      logger.warn('Phone login attempted while disabled');
+      return res.status(403).json({ 
+        message: 'Phone authentication is currently disabled' 
       });
     }
 
-    // Validation passed, proceed to the next middleware
+    // Validate request body against schema
+    const validationResult = phoneLoginSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      const errors = validationResult.error.issues.map(issue => ({
+        field: issue.path[0],
+        message: issue.message,
+      }));
+
+      logger.info('Phone login validation failed', {
+        errors,
+        body: req.body,
+      });
+
+      return res.status(400).json({ 
+        message: 'Phone login validation failed',
+        errors,
+      });
+    }
+
+    // Attach validated data to request object
     req.phoneLoginData = validationResult.data;
+    logger.debug('Phone login validation passed', { phone: req.phoneLoginData.phone });
+    
     next();
   } catch (error) {
-    console.error('Error validating phone login request:', error);
-    return res.status(500).json({ message: 'Internal server error during phone login validation' });
+    logger.error('Error in phone login validation middleware:', error);
+    return res.status(500).json({ 
+      message: 'Internal server error during phone login validation',
+      error: error.message,
+    });
   }
 };
 
-module.exports = validatePhoneLogin;
-
+/**
+ * Export both schema and middleware for consistency
+ */
+module.exports = {
+  validatePhoneLogin,
+  phoneLoginSchema,
+};
