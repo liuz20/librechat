@@ -89,10 +89,7 @@ function AuthLayout({
             </h1>
           )}
           {children}
-          {!pathname.includes('2fa') &&
-            (pathname.includes('login') || pathname.includes('register')) && (
-            <SocialLoginRender startupConfig={startupConfig} />
-          )}
+          {/* Social login options are disabled - phone auth only */}
         </div>
       </div>
       <Footer startupConfig={startupConfig} />

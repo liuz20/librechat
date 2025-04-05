@@ -55,13 +55,13 @@ export const ThemeProvider = ({ initialTheme, children }) => {
 
   useEffect(() => {
     const fontSize = localStorage.getItem('fontSize');
-    if (fontSize == null) {
+    if (!fontSize) {
       setFontSize('text-base');
       applyFontSize('text-base');
       localStorage.setItem('fontSize', 'text-base');
       return;
     }
-    applyFontSize(JSON.parse(fontSize));
+    applyFontSize(fontSize);
     // Reason: This effect should only run once, and `setFontSize` is a stable function
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

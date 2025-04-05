@@ -85,6 +85,7 @@ router.get('/', async function (req, res) {
       analyticsGtmId: process.env.ANALYTICS_GTM_ID,
       instanceProjectId: instanceProject._id.toString(),
       bundlerURL: process.env.SANDPACK_BUNDLER_URL,
+      defaultLang: process.env.DEFAULT_LANG,
     };
 
     if (ldap) {

@@ -9,7 +9,7 @@ export default function useAuthRedirect() {
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (!isAuthenticated) {
-        navigate('/login', { replace: true });
+        navigate('/login-phone', { replace: true });
       }
     }, 300);
 
