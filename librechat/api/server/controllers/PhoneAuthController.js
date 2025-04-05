@@ -36,12 +36,15 @@ const requestVerificationController = async (req, res) => {
     await saveVerificationCodeToStorage(phone, code, 300);
     
     try {
-      await SMSService.sendVerificationCode(phone, code);
+      await SMSService.sendVerificationCode({ phoneNumber: phone, code });
       logger.info(`Verification code sent to ${phone}`);
       return res.status(200).json({ message: 'Verification code sent successfully' });
     } catch (smsError) {
       logger.error('[requestVerificationController] SMS error:', smsError);
-      return res.status(503).json({ message: 'Failed to send verification code' });
+      return res.status(503).json({ 
+        message: 'Failed to send verification code', 
+        error: process.env.NODE_ENV === 'development' ? smsError.message : undefined 
+      });
     }
   } catch (error) {
     logger.error('[requestVerificationController]', error);
@@ -282,12 +285,15 @@ const sendVerificationCodeController = async (req, res) => {
     await saveVerificationCodeToStorage(phone, code, 300);
     
     try {
-      await SMSService.sendVerificationCode(phone, code);
+      await SMSService.sendVerificationCode({ phoneNumber: phone, code });
       logger.info(`Verification code sent to ${phone}`);
       return res.status(200).json({ message: 'Verification code sent successfully' });
     } catch (smsError) {
       logger.error('[sendVerificationCodeController] SMS error:', smsError);
-      return res.status(503).json({ message: 'Failed to send verification code' });
+      return res.status(503).json({ 
+        message: 'Failed to send verification code',
+        error: process.env.NODE_ENV === 'development' ? smsError.message : undefined
+      });
     }
   } catch (error) {
     logger.error('[sendVerificationCodeController]', error);

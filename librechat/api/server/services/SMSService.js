@@ -4,182 +4,188 @@ const Util = require('@alicloud/tea-util');
 const { logger } = require('~/config');
 
 /**
- * SMSService provides functionality to send SMS messages using Alibaba Cloud's SMS service.
+ * SMS Service Configuration Guide
  * 
- * This service handles SMS operations like sending verification codes and notifications
- * using Alibaba Cloud's SMS API. It manages connection creation, request formatting,
- * and error handling for all SMS operations.
+ * This service supports multiple SMS providers for sending verification codes
+ * and notifications. Configure your preferred provider in the .env file.
  * 
- * @module SMSService
+ * Provider Options:
+ * 1. Alibaba Cloud (SMS_PROVIDER=alibaba)
+ *    - Required env vars:
+ *      - ALIBABA_CLOUD_ACCESS_KEY_ID
+ *      - ALIBABA_CLOUD_ACCESS_KEY_SECRET
+ *      - ALIBABA_CLOUD_SMS_SIGN_NAME
+ *      - ALIBABA_CLOUD_SMS_TEMPLATE_CODE (for verification)
+ *      - ALIBABA_CLOUD_SMS_TEMPLATE_CODE_NOTIFICATION (for notifications)
+ * 
+ * 2. Mock Provider (SMS_PROVIDER=mock)
+ *    - No configuration required
+ *    - Logs messages to console instead of sending real SMS
+ *    - Default in development environment
+ * 
+ * Rate Limiting:
+ * - SMS_RATE_LIMIT_WINDOW: Time window in milliseconds (default: 60000)
+ * - SMS_RATE_LIMIT_MAX: Maximum SMS per window per user (default: 5)
  */
+
+// SMS Provider Types
+const SMS_PROVIDER = {
+  ALIBABA: 'alibaba',
+  MOCK: 'mock'
+};
+
+// Determine the SMS provider to use
+const SMS_PROVIDER_TYPE = process.env.SMS_PROVIDER || 
+  (process.env.NODE_ENV === 'production' ? SMS_PROVIDER.ALIBABA : SMS_PROVIDER.MOCK);
+
 /**
- * Creates an Alibaba Cloud SMS client using environment credentials.
- * 
- * This function initializes the Alibaba Cloud SMS client with credentials from
- * environment variables. The client is configured to connect to the Alibaba Cloud
- * SMS service endpoint.
- *
- * @returns {Object} Configured Alibaba Cloud SMS client instance
- * @throws {Error} If required credentials are missing in environment variables
- * @throws {Error} If client initialization fails for any reason
+ * Creates an SMS client based on the configured provider
+ * @returns {Object} Configured SMS client
  */
 const createClient = () => {
-  try {
-    // Ensure environment variables are set
-    const accessKeyId = process.env.ALIBABA_CLOUD_ACCESS_KEY_ID;
-    const accessKeySecret = process.env.ALIBABA_CLOUD_ACCESS_KEY_SECRET;
-    
-    if (!accessKeyId || !accessKeySecret) {
-      throw new Error('Missing Alibaba Cloud SMS credentials in environment variables');
-    }
-    
-    const config = new OpenApi.Config({
-      accessKeyId,
-      accessKeySecret,
-    });
-    
-    // Set the SMS service endpoint
-    config.endpoint = process.env.ALIBABA_CLOUD_SMS_ENDPOINT || 'dysmsapi.aliyuncs.com';
-    return new Dysmsapi20170525(config);
-  } catch (error) {
-    logger.error('[SMSService.createClient] Failed to create SMS client:', error);
-    throw error;
+  switch (SMS_PROVIDER_TYPE) {
+    case SMS_PROVIDER.ALIBABA:
+      if (!process.env.ALIBABA_CLOUD_ACCESS_KEY_ID || !process.env.ALIBABA_CLOUD_ACCESS_KEY_SECRET) {
+        throw new Error('Missing Alibaba Cloud credentials');
+      }
+      const config = new OpenApi.Config({
+        accessKeyId: process.env.ALIBABA_CLOUD_ACCESS_KEY_ID,
+        accessKeySecret: process.env.ALIBABA_CLOUD_ACCESS_KEY_SECRET,
+      });
+      config.endpoint = process.env.ALIBABA_CLOUD_SMS_ENDPOINT || 'dysmsapi.aliyuncs.com';
+      return new Dysmsapi20170525(config);
+
+    case SMS_PROVIDER.MOCK:
+      return {
+        mock: true,
+        messages: {
+          create: async (params) => ({
+            sid: 'mock-' + Date.now(),
+            status: 'sent',
+            ...params
+          })
+        },
+        sendSmsWithOptions: async () => ({
+          body: {
+            code: 'OK',
+            message: 'Mock SMS sent successfully',
+            requestId: 'mock-request-' + Date.now(),
+            bizId: 'mock-biz-' + Math.floor(Math.random() * 1000000)
+          }
+        })
+      };
+
+    default:
+      throw new Error(`Unsupported SMS provider: ${SMS_PROVIDER_TYPE}`);
   }
 };
+
 /**
- * Sends an SMS message using Alibaba Cloud SMS service.
- * 
- * Core function for sending SMS messages. It handles parameter validation,
- * client initialization, request construction, and error handling.
- *
- * @async
- * @param {Object} params - Parameters for sending the SMS
- * @param {string} params.phoneNumbers - Phone number(s) to send to, can be comma-separated for multiple recipients
- * @param {string} params.signName - SMS signature name (must be pre-approved in Alibaba Cloud console)
- * @param {string} params.templateCode - SMS template code (must be pre-approved in Alibaba Cloud console)
- * @param {Object|string} params.templateParam - Template parameters in JSON format or pre-formatted JSON string
- * @returns {Promise<Object>} The response from the SMS service
- * @throws {Error} If required parameters are missing
- * @throws {Error} If there's an error creating the client or sending the SMS
+ * Sends a verification code via SMS
+ * @param {Object} params The parameters for sending verification code
+ * @param {string} params.phoneNumber The phone number to send the code to
+ * @param {string} params.code The verification code to send
+ * @returns {Promise<Object>} The result of the SMS sending operation
  */
-const sendSMS = async ({ phoneNumbers, signName, templateCode, templateParam }) => {
-  if (!phoneNumbers || !signName || !templateCode) {
-    const error = new Error('Missing required parameters for sending SMS');
-    logger.error('[SMSService.sendSMS] Parameter validation failed:', error);
-    throw error;
-  }
-  
+const sendVerificationCode = async ({ phoneNumber, code }) => {
   try {
+    logger.info(`[SMSService] Sending verification code to ${phoneNumber}`);
+
+    if (SMS_PROVIDER_TYPE === SMS_PROVIDER.MOCK) {
+      logger.info(`[MOCK SMS] Verification code for ${phoneNumber}: ${code}`);
+      console.log(`🔑 MOCK SMS VERIFICATION: Phone: ${phoneNumber}, Code: ${code}`);
+      return {
+        success: true,
+        mode: 'mock',
+        messageId: 'mock-' + Date.now()
+      };
+    }
+
     const client = createClient();
-    const runtime = new Util.RuntimeOptions({});
-    
-    // Ensure templateParam is a string
-    const parsedTemplateParam = typeof templateParam === 'object' 
-      ? JSON.stringify(templateParam) 
-      : templateParam;
-    
-    const sendSmsRequest = new Dysmsapi20170525.SendSmsRequest({
-      phoneNumbers,
-      signName,
-      templateCode,
-      templateParam: parsedTemplateParam,
-    });
-    
-    logger.info(`[SMSService.sendSMS] Sending SMS to ${phoneNumbers} using template ${templateCode}`);
-    const response = await client.sendSmsWithOptions(sendSmsRequest, runtime);
-    
-    // Check response for potential errors
-    if (response && response.body && response.body.code !== 'OK') {
-      logger.warn(`[SMSService.sendSMS] SMS service returned non-OK status: ${response.body.code}, message: ${response.body.message}`);
-    } else {
-      logger.info(`[SMSService.sendSMS] SMS sent successfully to ${phoneNumbers}`);
+
+    if (SMS_PROVIDER_TYPE === SMS_PROVIDER.ALIBABA) {
+      const runtime = new Util.RuntimeOptions({});
+      const sendSmsRequest = new Dysmsapi20170525.SendSmsRequest({
+        phoneNumbers: phoneNumber,
+        signName: process.env.ALIBABA_CLOUD_SMS_SIGN_NAME || 'LibreChat',
+        templateCode: process.env.ALIBABA_CLOUD_SMS_TEMPLATE_CODE,
+        templateParam: JSON.stringify({ code })
+      });
+
+      const response = await client.sendSmsWithOptions(sendSmsRequest, runtime);
+      
+      if (response.body.code !== 'OK') {
+        throw new Error(`Alibaba SMS error: ${response.body.message}`);
+      }
+      
+      return {
+        success: true,
+        messageId: response.body.bizId,
+        provider: SMS_PROVIDER.ALIBABA,
+        details: response.body
+      };
     }
-    
-    return response;
   } catch (error) {
-    logger.error('[SMSService.sendSMS] Error sending SMS:', error);
-    throw error;
+    logger.error('[SMSService] Failed to send verification code:', error);
+    throw new Error('Failed to send verification code');
   }
 };
-/**
- * Sends a verification code SMS.
- * 
- * Specialized function for sending verification code SMS messages. It uses configurable
- * default values for sign name and template code, which can be overridden.
- *
- * @async
- * @param {Object} params - Parameters for sending the verification SMS
- * @param {string} params.phoneNumber - Phone number to send to
- * @param {string} params.code - Verification code to send
- * @param {string} [params.signName] - Optional custom sign name (overrides default)
- * @param {string} [params.templateCode] - Optional custom template code (overrides default)
- * @returns {Promise<Object>} The response from the SMS service
- * @throws {Error} If required parameters are missing or if SMS sending fails
- */
-const sendVerificationCode = async ({ phoneNumber, code, signName, templateCode }) => {
-  if (!phoneNumber || !code) {
-    const error = new Error('Missing required parameters for verification code SMS: phoneNumber and code are required');
-    logger.error('[SMSService.sendVerificationCode] Parameter validation failed:', error);
-    throw error;
-  }
 
-  try {
-    const defaultSignName = process.env.SMS_SIGN_NAME || 'LibreChat';
-    const defaultTemplateCode = process.env.SMS_TEMPLATE_CODE_VERIFICATION || 'SMS_154950909';
-    
-    logger.info(`[SMSService.sendVerificationCode] Sending verification code to ${phoneNumber}`);
-    return await sendSMS({
-      phoneNumbers: phoneNumber,
-      signName: signName || defaultSignName,
-      templateCode: templateCode || defaultTemplateCode,
-      templateParam: { code },
-    });
-  } catch (error) {
-    logger.error('[SMSService.sendVerificationCode] Failed to send verification code:', error);
-    throw error;
-  }
-};
 /**
- * Sends a notification SMS.
- * 
- * Specialized function for sending notification SMS messages. It supports custom
- * template parameters and uses configurable default values for sign name and template code.
- *
- * @async
- * @param {Object} params - Parameters for sending the notification SMS
- * @param {string} params.phoneNumber - Phone number to send to
- * @param {Object} params.params - Notification parameters to be inserted into the template
- * @param {string} [params.signName] - Optional custom sign name (overrides default)
- * @param {string} [params.templateCode] - Optional custom template code (overrides default)
- * @returns {Promise<Object>} The response from the SMS service
- * @throws {Error} If required parameters are missing or if SMS sending fails
+ * Sends a notification SMS
+ * @param {Object} params Parameters for sending the notification
+ * @param {string} params.phoneNumber The phone number to send to
+ * @param {string} params.message The message to send
+ * @param {Object} [params.templateParams] Template parameters for Alibaba Cloud
+ * @returns {Promise<Object>} The result of the SMS sending operation
  */
-const sendNotification = async ({ phoneNumber, params, signName, templateCode }) => {
-  if (!phoneNumber || !params) {
-    const error = new Error('Missing required parameters for notification SMS: phoneNumber and params are required');
-    logger.error('[SMSService.sendNotification] Parameter validation failed:', error);
-    throw error;
-  }
-
+const sendNotification = async ({ phoneNumber, message, templateParams }) => {
   try {
-    const defaultSignName = process.env.SMS_SIGN_NAME || 'LibreChat';
-    const defaultTemplateCode = process.env.SMS_TEMPLATE_CODE_NOTIFICATION || 'SMS_DEFAULT_NOTIFICATION';
-    
-    logger.info(`[SMSService.sendNotification] Sending notification to ${phoneNumber}`);
-    return await sendSMS({
-      phoneNumbers: phoneNumber,
-      signName: signName || defaultSignName,
-      templateCode: templateCode || defaultTemplateCode,
-      templateParam: params,
-    });
+    logger.info(`[SMSService] Sending notification to ${phoneNumber}`);
+
+    if (SMS_PROVIDER_TYPE === SMS_PROVIDER.MOCK) {
+      logger.info(`[MOCK SMS] Notification to ${phoneNumber}: ${message}`);
+      console.log(`📱 MOCK SMS NOTIFICATION: Phone: ${phoneNumber}, Message: ${message}`);
+      return {
+        success: true,
+        mode: 'mock',
+        messageId: 'mock-' + Date.now()
+      };
+    }
+
+    const client = createClient();
+
+    if (SMS_PROVIDER_TYPE === SMS_PROVIDER.ALIBABA) {
+      const runtime = new Util.RuntimeOptions({});
+      const sendSmsRequest = new Dysmsapi20170525.SendSmsRequest({
+        phoneNumbers: phoneNumber,
+        signName: process.env.ALIBABA_CLOUD_SMS_SIGN_NAME || 'LibreChat',
+        templateCode: process.env.ALIBABA_CLOUD_SMS_TEMPLATE_CODE_NOTIFICATION,
+        templateParam: JSON.stringify(templateParams || { message })
+      });
+
+      const response = await client.sendSmsWithOptions(sendSmsRequest, runtime);
+      
+      if (response.body.code !== 'OK') {
+        throw new Error(`Alibaba SMS error: ${response.body.message}`);
+      }
+      
+      return {
+        success: true,
+        messageId: response.body.bizId,
+        provider: SMS_PROVIDER.ALIBABA,
+        details: response.body
+      };
+    }
   } catch (error) {
-    logger.error('[SMSService.sendNotification] Failed to send notification:', error);
-    throw error;
+    logger.error('[SMSService] Failed to send notification:', error);
+    throw new Error('Failed to send notification');
   }
 };
+
 module.exports = {
-  createClient,
-  sendSMS,
   sendVerificationCode,
-  sendNotification
+  sendNotification,
+  SMS_PROVIDER,
+  SMS_PROVIDER_TYPE
 };

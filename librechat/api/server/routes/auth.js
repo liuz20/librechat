@@ -1,20 +1,24 @@
 const express = require('express');
-const {
+const { 
   refreshController,
-  registrationController,
   resetPasswordController,
   resetPasswordRequestController,
+  registrationController,
 } = require('~/server/controllers/AuthController');
 const {
   sendVerificationCodeController,
   verifyPhoneController,
   phoneRegisterController,
-  phoneLoginController,
   linkPhoneController,
 } = require('~/server/controllers/PhoneAuthController');
 const { loginController } = require('~/server/controllers/auth/LoginController');
 const { logoutController } = require('~/server/controllers/auth/LogoutController');
 const { verify2FA } = require('~/server/controllers/auth/TwoFactorAuthController');
+const { 
+  unifiedLoginController, 
+  sendPhoneVerificationCode, 
+  phoneLoginController 
+} = require('~/server/controllers/auth/UnifiedLoginController');
 const {
   enable2FAController,
   verify2FAController,
@@ -42,12 +46,40 @@ const router = express.Router();
 const ldapAuth = !!process.env.LDAP_URL && !!process.env.LDAP_USER_SEARCH_BASE;
 //Local
 router.post('/logout', requireJwtAuth, logoutController);
+
+/**
+ * @deprecated Use unified login system instead
+ */
 router.post(
   '/login',
   loginLimiter,
   checkBan,
   ldapAuth ? requireLdapAuth : requireLocalAuth,
   loginController,
+);
+
+// Unified login system routes
+router.post(
+  '/unified/login',
+  loginLimiter,
+  checkBan,
+  unifiedLoginController
+);
+
+router.post(
+  '/unified/send-verification',
+  smsLimiter,
+  checkBan,
+  sendPhoneVerificationCode
+);
+
+// Phone-specific login route (used by unified system)
+router.post(
+  '/unified/phone-login',
+  loginLimiter,
+  checkBan,
+  validatePhoneLogin,
+  phoneLoginController
 );
 router.post('/refresh', refreshController);
 router.post(
@@ -74,8 +106,11 @@ router.post('/2fa/confirm', requireJwtAuth, confirm2FAController);
 router.post('/2fa/disable', requireJwtAuth, disable2FAController);
 router.post('/2fa/backup/regenerate', requireJwtAuth, regenerateBackupCodesController);
 
-// Phone authentication routes
-router.post('/send-verification-code', smsLimiter, checkBan, sendVerificationCodeController);
+/**
+ * @deprecated Use unified login system instead
+ * Legacy phone authentication routes
+ * Maintained for backward compatibility
+ */
 router.post('/verify-phone', checkBan, verifyPhoneController);
 router.post(
   '/phone-register',
@@ -84,13 +119,6 @@ router.post(
   checkInviteUser,
   validatePhoneRegistration,
   phoneRegisterController
-);
-router.post(
-  '/phone-login',
-  loginLimiter,
-  checkBan,
-  validatePhoneLogin,
-  phoneLoginController
 );
 router.post('/link-phone', requireJwtAuth, linkPhoneController);
 
