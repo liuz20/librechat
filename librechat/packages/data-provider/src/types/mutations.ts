@@ -336,3 +336,78 @@ export type TLogoutResponse = {
 };
 
 export type LogoutOptions = MutationOptions<TLogoutResponse, undefined>;
+
+/* Phone Auth mutations */
+export type TPhoneLoginRequest = {
+  phone: string;
+  code?: string;
+  password?: string;
+};
+
+export type TPhoneLoginResponse = {
+  token: string;
+  user: types.TUser;
+  expires?: string;
+};
+
+export type TVerifyPhoneRequest = {
+  phone: string;
+  code: string;
+};
+
+export type TVerifyPhoneResponse = {
+  verified: boolean;
+  message: string;
+};
+
+export type TSendVerificationCodeRequest = {
+  phone: string;
+};
+
+export type TSendVerificationCodeResponse = {
+  success: boolean;
+  message: string;
+};
+
+export type TPhoneRegisterRequest = {
+  phone: string;
+  code: string;
+  name: string;
+  username: string;
+  password: string;
+  confirmPassword?: string;
+};
+
+export type TPhoneRegisterResponse = {
+  token: string;
+  user: types.TUser;
+  expires?: string;
+};
+
+export type PhoneLoginOptions = MutationOptions<
+  TPhoneLoginResponse,
+  TPhoneLoginRequest,
+  unknown,
+  types.TError
+>;
+
+export type VerifyPhoneOptions = MutationOptions<
+  TVerifyPhoneResponse,
+  TVerifyPhoneRequest,
+  unknown,
+  types.TError
+>;
+
+export type SendVerificationCodeOptions = MutationOptions<
+  TSendVerificationCodeResponse,
+  TSendVerificationCodeRequest,
+  unknown,
+  types.TError
+>;
+
+export type PhoneRegisterOptions = MutationOptions<
+  TPhoneRegisterResponse,
+  TPhoneRegisterRequest,
+  unknown,
+  types.TError
+>;

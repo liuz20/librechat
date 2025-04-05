@@ -376,3 +376,70 @@ export const useGetCustomConfigSpeechQuery = (
     },
   );
 };
+export const useSendVerificationCodeMutation = (): UseMutationResult<
+  m.TSendVerificationCodeResponse,
+  unknown,
+  m.TSendVerificationCodeRequest,
+  unknown
+> => {
+  return useMutation((payload: m.TSendVerificationCodeRequest) =>
+    dataService.sendVerificationCode(payload)
+  );
+};
+
+export const useVerifyPhoneMutation = (): UseMutationResult<
+  m.TVerifyPhoneResponse,
+  unknown,
+  m.TVerifyPhoneRequest,
+  unknown
+> => {
+  return useMutation((payload: m.TVerifyPhoneRequest) =>
+    dataService.verifyPhone(payload)
+  );
+};
+
+export const usePhoneLoginMutation = (
+  options?: m.RegistrationOptions,
+): UseMutationResult<
+  m.TPhoneLoginResponse,
+  unknown,
+  m.TPhoneLoginRequest,
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation((payload: m.TPhoneLoginRequest) =>
+    dataService.phoneLogin(payload),
+    {
+      ...options,
+      onSuccess: (...args) => {
+        queryClient.invalidateQueries([QueryKeys.user]);
+        if (options?.onSuccess) {
+          options.onSuccess(...args);
+        }
+      },
+    }
+  );
+};
+
+export const usePhoneRegisterMutation = (
+  options?: m.RegistrationOptions,
+): UseMutationResult<
+  m.TPhoneRegisterResponse,
+  unknown,
+  m.TPhoneRegisterRequest,
+  unknown
+> => {
+  const queryClient = useQueryClient();
+  return useMutation((payload: m.TPhoneRegisterRequest) =>
+    dataService.phoneRegister(payload),
+    {
+      ...options,
+      onSuccess: (...args) => {
+        queryClient.invalidateQueries([QueryKeys.user]);
+        if (options?.onSuccess) {
+          options.onSuccess(...args);
+        }
+      },
+    }
+  );
+};

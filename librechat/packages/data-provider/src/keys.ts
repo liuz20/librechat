@@ -69,4 +69,8 @@ export enum MutationKeys {
   updateRole = 'updateRole',
   enableTwoFactor = 'enableTwoFactor',
   verifyTwoFactor = 'verifyTwoFactor',
+  sendVerificationCode = 'sendVerificationCode',
+  verifyPhone = 'verifyPhone',
+  phoneLogin = 'phoneLogin',
+  phoneRegister = 'phoneRegister',
 }

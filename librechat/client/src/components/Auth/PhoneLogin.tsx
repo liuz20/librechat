@@ -1,9 +1,8 @@
 import { useForm } from 'react-hook-form';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
-import axios from 'axios';
 import type { TError } from 'librechat-data-provider';
+import { useSendVerificationCodeMutation, usePhoneLoginMutation } from 'librechat-data-provider/react-query';
 import type { TAuthContext } from '~/common';
 import { ErrorMessage } from './ErrorMessage';
 import { Spinner } from '~/components/svg';
@@ -45,11 +44,7 @@ const PhoneLogin: React.FC<TPhoneLoginProps> = ({ onSubmit, error, setError }) =
   };
 
   // Request verification code mutation
-  const requestVerification = useMutation({
-    mutationFn: async (phoneNumber: string) => {
-      const response = await axios.post('/api/auth/phone/send-verification-code', { phoneNumber });
-      return response.data;
-    },
+  const requestVerification = useSendVerificationCodeMutation({
     onMutate: () => {
       setIsSubmitting(true);
       clearErrors();
@@ -80,11 +75,7 @@ const PhoneLogin: React.FC<TPhoneLoginProps> = ({ onSubmit, error, setError }) =
   });
 
   // Login with phone and verification code mutation
-  const phoneLogin = useMutation({
-    mutationFn: async (data: PhoneLoginFormData) => {
-      const response = await axios.post('/api/auth/phone/login', data);
-      return response.data;
-    },
+  const phoneLogin = usePhoneLoginMutation({
     onMutate: () => {
       setIsSubmitting(true);
       clearErrors();
@@ -109,7 +100,7 @@ const PhoneLogin: React.FC<TPhoneLoginProps> = ({ onSubmit, error, setError }) =
     const isPhoneValid = await trigger('phoneNumber');
     if (isPhoneValid) {
       const phoneNumber = getValues('phoneNumber');
-      requestVerification.mutate(phoneNumber);
+      requestVerification.mutate({ phoneNumber });
     }
   };
 
