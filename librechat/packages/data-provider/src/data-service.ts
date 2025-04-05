@@ -145,6 +145,22 @@ export const register = (payload: t.TRegisterUser) => {
   return request.post(endpoints.register(), payload);
 };
 
+export const sendVerificationCode = (payload: m.TSendVerificationCodeRequest): Promise<m.TSendVerificationCodeResponse> => {
+  return request.post(endpoints.sendVerificationCode(), payload);
+};
+
+export const verifyPhone = (payload: m.TVerifyPhoneRequest): Promise<m.TVerifyPhoneResponse> => {
+  return request.post(endpoints.verifyPhone(), payload);
+};
+
+export const phoneLogin = (payload: m.TPhoneLoginRequest): Promise<m.TPhoneLoginResponse> => {
+  return request.post(endpoints.phoneLogin(), payload);
+};
+
+export const phoneRegister = (payload: m.TPhoneRegisterRequest): Promise<m.TPhoneRegisterResponse> => {
+  return request.post(endpoints.phoneRegister(), payload);
+};
+
 export const userKeyQuery = (name: string): Promise<t.TCheckUserKeyResponse> =>
   request.get(endpoints.userKeyQuery(name));
 

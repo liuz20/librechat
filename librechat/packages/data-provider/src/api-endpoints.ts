@@ -89,6 +89,14 @@ export const loginFacebook = () => '/api/auth/facebook';
 
 export const loginGoogle = () => '/api/auth/google';
 
+export const sendVerificationCode = () => '/api/auth/phone/send-code';
+
+export const verifyPhone = () => '/api/auth/phone/verify';
+
+export const phoneLogin = () => '/api/auth/phone/login';
+
+export const phoneRegister = () => '/api/auth/phone/register';
+
 export const refreshToken = (retry?: boolean) =>
   `/api/auth/refresh${retry === true ? '?retry=true' : ''}`;
 

@@ -1,8 +1,11 @@
 import { useForm } from 'react-hook-form';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext, useLocation } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
-import axios from 'axios';
+import { 
+  useSendVerificationCodeMutation, 
+  useVerifyPhoneMutation, 
+  usePhoneRegisterMutation 
+} from 'librechat-data-provider/react-query';
 import type { TError } from 'librechat-data-provider';
 import type { TLoginLayoutContext } from '~/common';
 import { ErrorMessage } from './ErrorMessage';
@@ -84,10 +87,7 @@ const PhoneRegistration: React.FC = () => {
     };
   }, [verificationSent, verificationCountdown, successCountdown, navigate]);
 
-  const requestVerification = useMutation({
-    mutationFn: async (phone: string) => {
-      return axios.post('/api/auth/phone/request-verification', { phone }).then(res => res.data);
-    },
+  const requestVerification = useSendVerificationCodeMutation({
     onMutate: () => setIsRequestingCode(true),
     onSuccess: () => {
       setVerificationSent(true);
@@ -97,18 +97,15 @@ const PhoneRegistration: React.FC = () => {
     },
     onError: (error: unknown) => {
       setErrorMessage(
-        axios.isAxiosError(error) && error.response?.data?.message
-          ? error.response.data.message
+        (error as TError).response?.data?.message
+          ? (error as TError).response.data.message
           : 'Failed to send verification code. Please try again.'
       );
     },
     onSettled: () => setIsRequestingCode(false),
   });
 
-  const verifyCode = useMutation({
-    mutationFn: async ({ phone, verificationCode }: { phone: string; verificationCode: string }) => {
-      return axios.post('/api/auth/phone/verify-code', { phone, verificationCode }).then(res => res.data);
-    },
+  const verifyCode = useVerifyPhoneMutation({
     onMutate: () => setIsVerifyingCode(true),
     onSuccess: () => {
       setFormStep(3);
@@ -116,26 +113,15 @@ const PhoneRegistration: React.FC = () => {
     },
     onError: (error: unknown) => {
       setErrorMessage(
-        axios.isAxiosError(error) && error.response?.data?.message
-          ? error.response.data.message
+        (error as TError).response?.data?.message
+          ? (error as TError).response.data.message
           : 'Invalid verification code. Please try again.'
       );
     },
     onSettled: () => setIsVerifyingCode(false),
   });
 
-  const registerUser = useMutation({
-    mutationFn: async (data: PhoneRegistrationFormData) => {
-      const { phone, name, username, password, confirm_password } = data;
-      return axios.post('/api/auth/phone/register', {
-        phone,
-        name,
-        username,
-        password,
-        confirm_password,
-        token: token ?? undefined,
-      }).then(res => res.data);
-    },
+  const registerUser = usePhoneRegisterMutation({
     onMutate: () => setIsRegistering(true),
     onSuccess: () => {
       setSuccessCountdown(3);
@@ -143,8 +129,8 @@ const PhoneRegistration: React.FC = () => {
     },
     onError: (error: unknown) => {
       setErrorMessage(
-        axios.isAxiosError(error) && error.response?.data?.message
-          ? error.response.data.message
+        (error as TError).response?.data?.message
+          ? (error as TError).response.data.message
           : 'Registration failed. Please try again.'
       );
     },
@@ -154,7 +140,7 @@ const PhoneRegistration: React.FC = () => {
   const handleRequestCode = async () => {
     const isPhoneValid = await trigger('phone');
     if (isPhoneValid) {
-      requestVerification.mutate(getValues('phone'));
+      requestVerification.mutate({ phone: getValues('phone') });
     }
   };
 
@@ -172,7 +158,15 @@ const PhoneRegistration: React.FC = () => {
   };
 
   const handleRegistration = (data: PhoneRegistrationFormData) => {
-    registerUser.mutate(data);
+    const { phone, name, username, password, confirm_password } = data;
+    registerUser.mutate({
+      phone,
+      name,
+      username,
+      password,
+      confirm_password,
+      token: token ?? undefined,
+    });
   };
 
   const renderInput = (id: keyof PhoneRegistrationFormData, label: TranslationKeys, type: string, validation: object) => (
