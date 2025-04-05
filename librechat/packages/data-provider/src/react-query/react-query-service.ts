@@ -399,7 +399,7 @@ export const useVerifyPhoneMutation = (): UseMutationResult<
 };
 
 export const usePhoneLoginMutation = (
-  options?: m.RegistrationOptions,
+  options?: m.PhoneLoginOptions,
 ): UseMutationResult<
   m.TPhoneLoginResponse,
   unknown,
@@ -422,7 +422,7 @@ export const usePhoneLoginMutation = (
 };
 
 export const usePhoneRegisterMutation = (
-  options?: m.RegistrationOptions,
+  options?: m.PhoneRegisterOptions,
 ): UseMutationResult<
   m.TPhoneRegisterResponse,
   unknown,
