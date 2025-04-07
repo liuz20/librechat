@@ -43,7 +43,6 @@ const UnifiedLoginForm: React.FC<TUnifiedLoginFormProps> = ({
 
   const [isPhone, setIsPhone] = useState<boolean>(false);
   const [showResendLink, setShowResendLink] = useState<boolean>(false);
-  const [showResendLink, setShowResendLink] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [verificationSent, setVerificationSent] = useState<boolean>(false);
@@ -111,7 +110,6 @@ const UnifiedLoginForm: React.FC<TUnifiedLoginFormProps> = ({
         });
       }, 1000);
     },
-    },
     onError: (error: unknown) => {
       setIsSubmitting(false);
       
@@ -125,6 +123,7 @@ const UnifiedLoginForm: React.FC<TUnifiedLoginFormProps> = ({
         setErrorMessage('Failed to send verification code. Please try again.');
       }
     },
+  });
 
   // Phone login mutation
   const phoneLogin = usePhoneLoginMutation({

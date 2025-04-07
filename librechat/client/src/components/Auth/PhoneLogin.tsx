@@ -45,6 +45,10 @@ const PhoneLogin: React.FC<TPhoneLoginProps> = ({ onSubmit, error, setError }) =
 
   // Request verification code mutation
   const requestVerification = useSendVerificationCodeMutation({
+    variables: () => {
+      const phoneNumber = getValues('phoneNumber');
+      return { phone: phoneNumber };
+    },
     onMutate: () => {
       setIsSubmitting(true);
       clearErrors();
@@ -69,7 +73,7 @@ const PhoneLogin: React.FC<TPhoneLoginProps> = ({ onSubmit, error, setError }) =
       if ((error as TError).response?.data?.message) {
         setErrorMessage((error as TError).response?.data?.message ?? '');
       } else {
-        setErrorMessage('Failed to send verification code. Please try again.');
+        setErrorMessage(localize('com_auth_verification_code_error'));
       }
     },
   });
@@ -91,7 +95,7 @@ const PhoneLogin: React.FC<TPhoneLoginProps> = ({ onSubmit, error, setError }) =
       if ((error as TError).response?.data?.message) {
         setErrorMessage((error as TError).response?.data?.message ?? '');
       } else {
-        setErrorMessage('Login failed. Please check your phone number and verification code.');
+        setErrorMessage(localize('com_auth_phone_login_failed'));
       }
     },
   });
@@ -99,8 +103,8 @@ const PhoneLogin: React.FC<TPhoneLoginProps> = ({ onSubmit, error, setError }) =
   const handleRequestCode = async () => {
     const isPhoneValid = await trigger('phoneNumber');
     if (isPhoneValid) {
-      const phoneNumber = getValues('phoneNumber');
-      requestVerification.mutate({ phoneNumber });
+      // No need to pass phone number as it's already configured in the hook's variables
+      requestVerification.mutate();
     }
   };
 
@@ -139,10 +143,10 @@ const PhoneLogin: React.FC<TPhoneLoginProps> = ({ onSubmit, error, setError }) =
               autoComplete="tel"
               aria-label={localize('com_auth_phone')}
               {...register('phoneNumber', {
-                required: 'Phone number is required',
+                required: localize('com_auth_phone_required'),
                 pattern: {
                   value: /^\+?[0-9]{10,15}$/,
-                  message: 'Please enter a valid phone number',
+                  message: localize('com_auth_phone_invalid'),
                 },
               })}
               aria-invalid={!!errors.phoneNumber}
@@ -184,16 +188,16 @@ const PhoneLogin: React.FC<TPhoneLoginProps> = ({ onSubmit, error, setError }) =
               {isSubmitting && !verificationSent ? (
                 <Spinner />
               ) : verificationCountdown > 0 ? (
-                `Resend code in ${verificationCountdown}s`
+                `${localize('com_auth_resend_code')} ${verificationCountdown}s`
               ) : (
-                'Request Verification Code'
+                localize('com_auth_request_verification_code')
               )}
             </button>
           </div>
         ) : (
           <>
             <div className="my-4 text-center text-sm font-light text-gray-700 dark:text-white">
-              Verification code sent. Please enter it below.
+              {localize('com_auth_verification_code_sent')}
             </div>
             <div className="mb-4">
               <div className="relative">
@@ -203,10 +207,10 @@ const PhoneLogin: React.FC<TPhoneLoginProps> = ({ onSubmit, error, setError }) =
                   autoComplete="one-time-code"
                   aria-label={localize('com_auth_verification_code')}
                   {...register('verificationCode', {
-                    required: 'Verification code is required',
+                    required: localize('com_auth_verification_code_required'),
                     pattern: {
                       value: /^[0-9]{4,6}$/,
-                      message: 'Please enter a valid verification code',
+                      message: localize('com_auth_verification_code_invalid'),
                     },
                   })}
                   aria-invalid={!!errors.verificationCode}
@@ -240,8 +244,8 @@ const PhoneLogin: React.FC<TPhoneLoginProps> = ({ onSubmit, error, setError }) =
                 className="text-sm font-medium text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
               >
                 {verificationCountdown > 0
-                  ? `Resend code in ${verificationCountdown}s`
-                  : 'Resend code'}
+                  ? `${localize('com_auth_resend_code')} ${verificationCountdown}s`
+                  : localize('com_auth_resend_code')}
               </button>
             </div>
 
