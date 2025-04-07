@@ -6,14 +6,72 @@ const {
   setAuthTokens,
   requestPasswordReset,
 } = require('~/server/services/AuthService');
+const User = require('../../models/User');
+const { getVerificationCodeFromStorage } = require('../utils/verificationStorage');
 const { findSession, getUserById, deleteAllUserSessions } = require('~/models');
 const { logger } = require('~/config');
 
 const registrationController = async (req, res) => {
   try {
-    const response = await registerUser(req.body);
-    const { status, message } = response;
-    res.status(status).send({ message });
+    // Check registration type from middleware
+    const registrationType = req.registrationType || 'email';
+    
+    logger.info(`[registrationController] Processing ${registrationType} registration`);
+
+    if (registrationType === 'email') {
+      // Handle email registration using the existing service
+      const response = await registerUser(req.body);
+      const { status, message } = response;
+      return res.status(status).send({ message });
+    } else if (registrationType === 'phone') {
+      // Handle phone registration
+      const { phoneNumber, code, username, name, password } = req.body;
+
+      try {
+        // Check if user already exists with the same phone or username
+        const existingUser = await User.findOne({ $or: [{ phone: phoneNumber }, { username }] });
+        if (existingUser) {
+          return res.status(400).json({ 
+            message: existingUser.phone === phoneNumber 
+              ? 'Phone number already registered' 
+              : 'Username already taken' 
+          });
+        }
+
+        // Create a new user with phone credentials
+        const newUser = new User({
+          username,
+          name,
+          phone: phoneNumber,
+          phoneVerified: true,
+          provider: 'local'
+        });
+
+        // Set password and save the user
+        await newUser.setPassword(password);
+        await newUser.save();
+
+        logger.info(`[registrationController] User registered with phone: ${phoneNumber}`);
+        
+        return res.status(201).json({
+          message: 'Registration successful',
+          user: {
+            id: newUser._id,
+            username: newUser.username,
+            name: newUser.name,
+            phone: newUser.phone,
+            phoneVerified: newUser.phoneVerified
+          }
+        });
+      } catch (phoneRegError) {
+        logger.error('[registrationController] Phone registration error:', phoneRegError);
+        return res.status(500).json({ message: 'Error processing phone registration' });
+      }
+    } else {
+      // Unknown registration type
+      logger.error(`[registrationController] Unknown registration type: ${registrationType}`);
+      return res.status(400).json({ message: 'Invalid registration type' });
+    }
   } catch (err) {
     logger.error('[registrationController]', err);
     return res.status(500).json({ message: err.message });

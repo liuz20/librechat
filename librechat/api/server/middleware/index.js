@@ -2,6 +2,7 @@ const validatePasswordReset = require('./validatePasswordReset');
 const validateRegistration = require('./validateRegistration');
 const { validatePhoneRegistration, phoneRegisterSchema } = require('./validatePhoneRegistration');
 const { validatePhoneLogin, phoneLoginSchema } = require('./validatePhoneLogin');
+const validateUnifiedRegistration = require('./validateUnifiedRegistration');
 const validateImageRequest = require('./validateImageRequest');
 const buildEndpointOption = require('./buildEndpointOption');
 const validateMessageReq = require('./validateMessageReq');
@@ -53,4 +54,5 @@ module.exports = {
   validatePasswordReset,
   validatePhoneRegistration,
   validatePhoneLogin,
+  validateUnifiedRegistration,
 };
