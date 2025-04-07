@@ -43,11 +43,12 @@ const UnifiedLoginForm: React.FC<TUnifiedLoginFormProps> = ({
 
   const [isPhone, setIsPhone] = useState<boolean>(false);
   const [showResendLink, setShowResendLink] = useState<boolean>(false);
+  const [showResendLink, setShowResendLink] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [verificationSent, setVerificationSent] = useState<boolean>(false);
   const [verificationCountdown, setVerificationCountdown] = useState<number>(0);
-
+  const [requiresRegistration, setRequiresRegistration] = useState<boolean>(false);
   const { data: config } = useGetStartupConfig();
   const useUsernameLogin = config?.ldap?.username;
 
@@ -57,6 +58,7 @@ const UnifiedLoginForm: React.FC<TUnifiedLoginFormProps> = ({
   const clearErrors = () => {
     setError(undefined);
     setErrorMessage('');
+    setRequiresRegistration(false);
   };
 
   // Detect if input is a phone number
@@ -109,15 +111,20 @@ const UnifiedLoginForm: React.FC<TUnifiedLoginFormProps> = ({
         });
       }, 1000);
     },
+    },
     onError: (error: unknown) => {
       setIsSubmitting(false);
-      if ((error as TError).response?.data?.message) {
+      
+      // Check if the error indicates that registration is required
+      if ((error as TError).response?.data?.requiresRegistration) {
+        setRequiresRegistration(true);
+        setErrorMessage('');
+      } else if ((error as TError).response?.data?.message) {
         setErrorMessage((error as TError).response?.data?.message ?? '');
       } else {
         setErrorMessage('Failed to send verification code. Please try again.');
       }
     },
-  });
 
   // Phone login mutation
   const phoneLogin = usePhoneLoginMutation({
@@ -417,6 +424,18 @@ const UnifiedLoginForm: React.FC<TUnifiedLoginFormProps> = ({
       {errorMessage && (
         <div className="mt-2 rounded-md border border-red-500 bg-red-500/10 px-3 py-2 text-sm text-gray-600 dark:text-gray-200">
           {errorMessage}
+        </div>
+      )}
+      
+      {requiresRegistration && (
+        <div className="mt-2 rounded-md border border-blue-500 bg-blue-500/10 px-3 py-2 text-sm text-gray-600 dark:text-gray-200">
+          {localize('com_auth_phone_not_registered')}{' '}
+          <a
+            href="/register-phone"
+            className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+          >
+            {localize('com_auth_create_account')}
+          </a>
         </div>
       )}
     </>

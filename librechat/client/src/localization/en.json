@@ -24,6 +24,17 @@
   "com_auth_sign_up": "Sign up",
   "com_auth_login_with_phone": "Login with phone",
   "com_auth_email_verification_resend_prompt": "Not received the verification email?",
-  "com_auth_email_resend_link": "Resend link"
+  "com_auth_email_resend_link": "Resend link",
+  "com_auth_phone": "Phone Number",
+  "com_auth_phone_required": "Phone number is required",
+  "com_auth_phone_invalid": "Please enter a valid phone number",
+  "com_auth_verification_code_error": "Failed to send verification code",
+  "com_auth_phone_login_failed": "Phone login failed",
+  "com_auth_phone_registration": "Register with Phone",
+  "com_auth_verify_phone": "Verify Your Phone",
+  "com_auth_complete_registration": "Complete Registration",
+  "com_auth_phone_not_registered": "This phone number is not registered.",
+  "com_auth_sign_up_with_phone": "Sign up with Phone",
+  "com_auth_create_account": "Create account"
 }
 

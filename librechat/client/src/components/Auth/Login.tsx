@@ -32,15 +32,28 @@ function Login() {
       )}
       
       {startupConfig?.registrationEnabled === true && (
-        <p className="my-4 text-center text-sm font-light text-gray-700 dark:text-white">
-          {localize('com_auth_no_account')}{' '}
-          <a
-            href="/register"
-            className="inline-flex p-1 text-sm font-medium text-green-600 transition-colors hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
-          >
-            {localize('com_auth_sign_up')}
-          </a>
-        </p>
+        <div>
+          <p className="my-4 text-center text-sm font-light text-gray-700 dark:text-white">
+            {localize('com_auth_no_account')}{' '}
+            <a
+              href="/register"
+              className="inline-flex p-1 text-sm font-medium text-green-600 transition-colors hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+            >
+              {localize('com_auth_sign_up')}
+            </a>
+          </p>
+          {startupConfig?.phoneLoginEnabled === true && (
+            <p className="mt-2 mb-4 text-center text-sm font-light text-gray-700 dark:text-white">
+              {localize('com_auth_or')}{' '}
+              <a
+                href="/register-phone"
+                className="inline-flex p-1 text-sm font-medium text-green-600 transition-colors hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+              >
+                {localize('com_auth_sign_up_with_phone')}
+              </a>
+            </p>
+          )}
+        </div>
       )}
     </>
   );
